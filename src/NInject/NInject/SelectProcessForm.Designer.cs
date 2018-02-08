@@ -29,7 +29,6 @@
         private void InitializeComponent()
         {
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this.buttonSelect = new System.Windows.Forms.Button();
             this.listViewProcesses = new System.Windows.Forms.ListView();
             this.columnHeaderIcon = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderId = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -37,6 +36,7 @@
             this.columnHeaderTitle = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderExecutable = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.columnHeaderDirectory = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.buttonSelect = new System.Windows.Forms.Button();
             this.tableLayoutPanel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -54,17 +54,6 @@
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 40F));
             this.tableLayoutPanel1.Size = new System.Drawing.Size(546, 433);
             this.tableLayoutPanel1.TabIndex = 0;
-            // 
-            // buttonSelect
-            // 
-            this.buttonSelect.Anchor = System.Windows.Forms.AnchorStyles.None;
-            this.buttonSelect.Enabled = false;
-            this.buttonSelect.Location = new System.Drawing.Point(233, 400);
-            this.buttonSelect.Name = "buttonSelect";
-            this.buttonSelect.Size = new System.Drawing.Size(80, 25);
-            this.buttonSelect.TabIndex = 2;
-            this.buttonSelect.Text = "Select";
-            this.buttonSelect.UseVisualStyleBackColor = true;
             // 
             // listViewProcesses
             // 
@@ -84,6 +73,9 @@
             this.listViewProcesses.TabIndex = 3;
             this.listViewProcesses.UseCompatibleStateImageBehavior = false;
             this.listViewProcesses.View = System.Windows.Forms.View.Details;
+            this.listViewProcesses.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.listViewProcesses_ColumnClick);
+            this.listViewProcesses.SelectedIndexChanged += new System.EventHandler(this.listViewProcesses_SelectedIndexChanged);
+            this.listViewProcesses.DoubleClick += new System.EventHandler(this.listViewProcesses_DoubleClick);
             // 
             // columnHeaderIcon
             // 
@@ -111,6 +103,18 @@
             // columnHeaderDirectory
             // 
             this.columnHeaderDirectory.Text = "Directory";
+            // 
+            // buttonSelect
+            // 
+            this.buttonSelect.Anchor = System.Windows.Forms.AnchorStyles.None;
+            this.buttonSelect.Enabled = false;
+            this.buttonSelect.Location = new System.Drawing.Point(233, 400);
+            this.buttonSelect.Name = "buttonSelect";
+            this.buttonSelect.Size = new System.Drawing.Size(80, 25);
+            this.buttonSelect.TabIndex = 2;
+            this.buttonSelect.Text = "Select";
+            this.buttonSelect.UseVisualStyleBackColor = true;
+            this.buttonSelect.Click += new System.EventHandler(this.buttonSelect_Click);
             // 
             // SelectProcessForm
             // 

@@ -44,7 +44,14 @@ namespace NInject
                 }
                 else
                 {
-                    icon = Icon.ExtractAssociatedIcon(executablePath);
+                    try
+                    {
+                        icon = Icon.ExtractAssociatedIcon(executablePath);
+                    }
+                    catch
+                    {
+                        icon = null;
+                    }
                 }
 
                 if (icon == null)
@@ -62,6 +69,23 @@ namespace NInject
 
                 listViewProcesses.Items.Add(item);
             }
+        }
+
+        private void listViewProcesses_ColumnClick(object sender, ColumnClickEventArgs e)
+        {
+            if (e.Column == columnHeaderIcon.Index)
+            {
+                return;
+            }
+
+            listViewProcesses.ListViewItemSorter = GetListViewItemSorter(e.Column);
+
+            listViewProcesses.Sort();
+        }
+
+        private void listViewProcesses_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            buttonSelect.Enabled = true;
         }
 
         private ListViewItemComparer GetListViewItemSorter(int columnIndex)
@@ -83,6 +107,30 @@ namespace NInject
             }
 
             return sorter;
+        }
+
+        private void buttonSelect_Click(object sender, EventArgs e)
+        {
+            CloseForm();
+        }
+
+        private void listViewProcesses_DoubleClick(object sender, EventArgs e)
+        {
+            CloseForm();
+        }
+
+        private void CloseForm()
+        {
+            if (listViewProcesses.SelectedItems.Count == 0)
+            {
+                return;
+            }
+
+            this.Process = listViewProcesses.SelectedItems[0].Tag as Process;
+
+            this.DialogResult = DialogResult.OK;
+
+            this.Close();
         }
 
         private class ListViewItemComparer : IComparer
@@ -129,30 +177,6 @@ namespace NInject
 
                 return result;
             }
-        }
-
-        private void buttonSelect_Click(object sender, EventArgs e)
-        {
-            CloseForm();
-        }
-
-        private void listViewProcesses_DoubleClick(object sender, EventArgs e)
-        {
-            CloseForm();
-        }
-
-        private void CloseForm()
-        {
-            if (listViewProcesses.SelectedItems.Count == 0)
-            {
-                return;
-            }
-
-            this.Process = listViewProcesses.SelectedItems[0].Tag as Process;
-
-            this.DialogResult = DialogResult.OK;
-
-            this.Close();
         }
     }
 }

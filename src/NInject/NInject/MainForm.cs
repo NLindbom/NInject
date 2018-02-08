@@ -18,7 +18,7 @@ namespace NInject
             InitializeComponent();
         }
 
-        private void openProcessToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void openProcessToolStripMenuItem_ClickAsync(object sender, EventArgs e)
         {
             using (var form = new SelectProcessForm(Process.GetProcesses()))
             {
@@ -26,14 +26,18 @@ namespace NInject
 
                 if (form.DialogResult == DialogResult.OK)
                 {
-                    OpenProcess(form.Process);
+                    await OpenProcessAsync(form.Process);
                 }
             }
         }
 
-        private void OpenProcess(Process process)
+        private async Task OpenProcessAsync(Process process)
         {
+            var tabPage = new TabPage(process.ProcessName);
 
+            tabControl.TabPages.Add(tabPage);
+
+            await ProcessManager.InjectAsync(process, Program.DllPath, "TestA");
         }
     }
 }
