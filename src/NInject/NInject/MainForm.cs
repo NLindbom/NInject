@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -18,7 +19,7 @@ namespace NInject
             InitializeComponent();
         }
 
-        private async void openProcessToolStripMenuItem_ClickAsync(object sender, EventArgs e)
+        private void openProcessToolStripMenuItem_Click(object sender, EventArgs e)
         {
             using (var form = new SelectProcessForm(Process.GetProcesses()))
             {
@@ -26,18 +27,34 @@ namespace NInject
 
                 if (form.DialogResult == DialogResult.OK)
                 {
-                    await OpenProcessAsync(form.Process);
+                    OpenProcess(form.Process);
                 }
             }
         }
 
-        private async Task OpenProcessAsync(Process process)
+        private void OpenProcess(Process process)
         {
             var tabPage = new TabPage(process.ProcessName);
 
             tabControl.TabPages.Add(tabPage);
 
-            await ProcessManager.InjectAsync(process, Program.DllPath, "TestA");
+            var processInfo = ProcessManager.Inject(process, Program.DllPath, "Run");             
+        }
+
+        private void Close(Guid processInfoId)
+        {
+
+        }
+
+        private void CloseAll()
+        {
+            var processInfoIds = ProcessManager.ProcessInfos;
+
+            foreach (var processInfoId in processInfoIds)
+            {
+                Task.Run(() => ProcessManager.CloseProcessAsync(processInfoId));
+            }
+            // TODO: Free .dll
         }
     }
 }

@@ -8,12 +8,34 @@ using System.Threading.Tasks;
 
 using static NInject.Kernel32.ProcessAccessFlags;
 using static NInject.Kernel32.AllocationType;
+using System.Threading;
 
 namespace NInject
 {
     public static class ProcessManager
     {
         private const uint STILL_ACTIVE = 259;
+
+        private static readonly object lockObject = new object();
+
+        private static Dictionary<Guid, ProcessInfo> processInfoDictionary;
+        public static Guid[] ProcessInfos
+        {
+            get
+            {
+                lock (lockObject)
+                {
+                    var list = processInfoDictionary.Keys.ToArray();
+
+                    return list;
+                }
+            }
+        }
+
+        static ProcessManager()
+        {
+            processInfoDictionary = new Dictionary<Guid, ProcessInfo>();
+        }
 
         // http://www.aboutmycode.com/net-framework/how-to-get-elevated-process-path-in-net/
         public static string GetExecutablePath(Process Process)
@@ -53,109 +75,97 @@ namespace NInject
 
         // https://social.msdn.microsoft.com/Forums/en-US/6ddd7a04-3052-4080-9b77-155cf6d68828/calling-a-function-from-a-dll-injected-into-a-remote-process?forum=vcgeneral
 
-        /// <returns>Remote thread exit code</returns>
-        public static async Task<uint> RemoteLibaryFunction(Process targetProcess,
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="hProcess">Process handle</param>
+        /// <param name="lpModuleName">Module name</param>
+        /// <param name="lpProcName">Proc name</param>
+        /// <param name="lpParameters">Parameters</param>
+        /// <param name="dwParamSize">Parameter size</param>
+        /// <returns>Remote thread handle</returns>
+        public static IntPtr RemoteLibaryFunction(IntPtr hProcess,
             string lpModuleName,
             string lpProcName,
             byte[] lpParameters,
             uint dwParamSize)
         {
-            IntPtr hProcess = IntPtr.Zero;
-
-            try
+            if (hProcess == IntPtr.Zero)
             {
-                hProcess = Kernel32.OpenProcess(
-                    CreateThread | QueryInformation | VirtualMemoryOperation | VirtualMemoryWrite | VirtualMemoryRead,
-                    false,
-                    targetProcess.Id);
+                throw new ProcessException(ProcessException.Reasons.OpenProcessFault, hProcess, lpModuleName, lpProcName);
+            }
 
-                if (hProcess == IntPtr.Zero)
+            IntPtr lpRemoteParams;
+
+            IntPtr hModule = Kernel32.GetModuleHandle(lpModuleName);
+
+            IntPtr lpFunctionAddress = Kernel32.GetProcAddress(hModule, lpProcName);
+
+            if (lpFunctionAddress == IntPtr.Zero)
+            {
+                hModule = Kernel32.LoadLibrary(lpModuleName);
+
+                if (hModule == IntPtr.Zero)
+                    throw new ProcessException(ProcessException.Reasons.LoadLibraryModuleNotFound, hProcess, lpModuleName, lpProcName);
+
+                lpFunctionAddress = Kernel32.GetProcAddress(hModule, lpProcName);
+            }
+
+            if (lpFunctionAddress == IntPtr.Zero)
+            {
+                throw new ProcessException(ProcessException.Reasons.InvalidFunctionAdress, hProcess, lpModuleName, lpProcName);
+            }
+
+            if (lpParameters != null)
+            {
+                IntPtr lpAddress = IntPtr.Zero;
+
+                lpRemoteParams = Kernel32.VirtualAllocEx(hProcess,
+                    lpAddress,
+                    dwParamSize,
+                    MemReserve | MemCommit,
+                    Kernel32.Protect.PageExecuteReadWrite);
+
+                if (lpRemoteParams == IntPtr.Zero)
                 {
-                    throw new ProcessException(ProcessException.Reasons.OpenProcessFault, targetProcess, lpModuleName, lpProcName);
+                    throw new ProcessException(ProcessException.Reasons.RemoteParameterAllocationFault, hProcess, lpModuleName, lpProcName);
                 }
 
-                IntPtr lpRemoteParams;
+                UIntPtr dwBytesWritten;
 
-                IntPtr hModule = Kernel32.GetModuleHandle(lpModuleName);
-
-                IntPtr lpFunctionAddress = Kernel32.GetProcAddress(hModule, lpProcName);
-
-                if (lpFunctionAddress == IntPtr.Zero)
-                {
-                    hModule = Kernel32.LoadLibrary(lpModuleName);
-
-                    lpFunctionAddress = Kernel32.GetProcAddress(hModule, lpProcName);
-                }
-
-                if (lpFunctionAddress == IntPtr.Zero)
-                {
-                    throw new ProcessException(ProcessException.Reasons.InvalidFunctionAdress, targetProcess, lpModuleName, lpProcName);
-                }
-
-                if (lpParameters != null)
-                {
-                    IntPtr lpAddress = IntPtr.Zero;
-
-                    lpRemoteParams = Kernel32.VirtualAllocEx(hProcess,
-                        lpAddress,
-                        dwParamSize,
-                        MemReserve | MemCommit,
-                        Kernel32.Protect.PageExecuteReadWrite);
-
-                    if (lpRemoteParams == IntPtr.Zero)
-                    {
-                        throw new ProcessException(ProcessException.Reasons.RemoteParameterAllocationFault, targetProcess, lpModuleName, lpProcName);
-                    }
-
-                    UIntPtr dwBytesWritten;
-
-                    bool result = Kernel32.WriteProcessMemory(hProcess,
-                        lpRemoteParams,
-                        lpParameters,
-                        dwParamSize,
-                        out dwBytesWritten);
-
-                    if (!result || dwBytesWritten == UIntPtr.Zero)
-                    {
-                        throw new ProcessException(ProcessException.Reasons.WriteProcessMemoryFault, targetProcess, lpModuleName, lpProcName);
-                    }
-                }
-                else
-                {
-                    lpRemoteParams = IntPtr.Zero;
-                }
-
-                uint dwCreationFlags = 0;
-                IntPtr lpThreadedId = IntPtr.Zero;
-                uint dwStackSize = 0;
-                IntPtr lpThreadAttributes = IntPtr.Zero;
-
-                IntPtr hThread = Kernel32.CreateRemoteThread(hProcess,
-                    lpThreadAttributes,
-                    dwStackSize,
-                    lpFunctionAddress,
+                bool result = Kernel32.WriteProcessMemory(hProcess,
                     lpRemoteParams,
-                    dwCreationFlags,
-                    lpThreadedId);
+                    lpParameters,
+                    dwParamSize,
+                    out dwBytesWritten);
 
-                if (hThread == IntPtr.Zero)
+                if (!result || dwBytesWritten == UIntPtr.Zero)
                 {
-                    throw new ProcessException(ProcessException.Reasons.CreateRemoteThreadFault, targetProcess, lpModuleName, lpProcName);
+                    throw new ProcessException(ProcessException.Reasons.WriteProcessMemoryFault, hProcess, lpModuleName, lpProcName);
                 }
+            }
+            else
+            {
+                lpRemoteParams = IntPtr.Zero;
+            }
 
-                return await GetExitCodeThread(hThread);
-            }
-            catch (Exception e)
+            IntPtr hThread = Kernel32.CreateRemoteThread(hProcess,
+                lpThreadAttributes: IntPtr.Zero,
+                dwStackSize: 0,
+                lpStartAddress: lpFunctionAddress,
+                lpParameter: lpRemoteParams,
+                dwCreationFlags: 0,
+                lpThreadId: IntPtr.Zero);
+
+            if (hThread == IntPtr.Zero)
             {
-                throw e;
+                throw new ProcessException(ProcessException.Reasons.CreateRemoteThreadFault, hProcess, lpModuleName, lpProcName);
             }
-            finally
-            {
-                Kernel32.CloseHandle(hProcess);
-            }
+
+            return hThread;
         }
 
-        private static async Task<uint> GetExitCodeThread(IntPtr hThread)
+        public static uint GetExitCodeThread(IntPtr hThread)
         {
             uint dwOut;
 
@@ -163,26 +173,70 @@ namespace NInject
             {
                 if (dwOut != STILL_ACTIVE)
                 {
-                    return dwOut;
+                    break;
                 }
 
-                await Task.Delay(100);
+                System.Threading.Thread.Sleep(10);
             }
 
-            return 0;
+            Kernel32.CloseHandle(hThread);
+
+            return dwOut;
         }
 
-        public static async Task<uint> InjectAsync(Process targetProcess, string targetDll, string procName)
+        public static ProcessInfo Inject(Process targetProcess, string dllPath, string procName)
         {
-            uint threadExitCode = await RemoteLibaryFunction(targetProcess,
+            IntPtr hProcess = Kernel32.OpenProcess(
+                CreateThread | VirtualMemoryOperation | VirtualMemoryRead | VirtualMemoryWrite | QueryInformation,
+                false,
+                targetProcess.Id);
+
+            IntPtr hThread = RemoteLibaryFunction(hProcess,
                 lpModuleName: "kernel32.dll",
                 lpProcName: "LoadLibraryA",
-                lpParameters: Encoding.Default.GetBytes(targetDll),
-                dwParamSize: (uint)((targetDll.Length + 1) * Marshal.SizeOf(typeof(char)))).ConfigureAwait(false);
+                lpParameters: Encoding.Default.GetBytes(dllPath),
+                dwParamSize: (uint)((dllPath.Length + 1) * Marshal.SizeOf(typeof(char))));
 
-            var remoteProcTask = RemoteLibaryFunction(targetProcess, targetDll, procName, null, 0);
+            GetExitCodeThread(hThread);
 
-            return await remoteProcTask;
+            hThread = RemoteLibaryFunction(hProcess, dllPath, procName, null, 0);
+
+            var processInfo = new ProcessInfo(targetProcess, hProcess, hThread);
+
+            lock (lockObject)
+            {
+                processInfoDictionary.Add(processInfo.Id, processInfo);
+            }
+
+            return processInfo;
+        }
+
+        public static async Task CloseProcessAsync(Guid processInfoId)
+        {
+            ProcessInfo processInfo;
+
+            lock (lockObject)
+            {
+                if (!processInfoDictionary.TryGetValue(processInfoId, out processInfo))
+                    throw new ArgumentException();
+            }
+
+            const int cancelAfterMilliseconds = 1000;
+
+            CancellationTokenSource cts;
+
+            cts = new CancellationTokenSource(cancelAfterMilliseconds);
+
+            Action waitForThreadExit = () => GetExitCodeThread(processInfo.ThreadHandle);
+
+            await Task.Run(waitForThreadExit, cts.Token);
+
+            lock (lockObject)
+            {
+                processInfoDictionary.Remove(processInfo.Id);
+            }
+
+            Kernel32.CloseHandle(processInfo.ProcessHandle);
         }
     }
 }

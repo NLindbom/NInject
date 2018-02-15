@@ -15,21 +15,22 @@ namespace NInject
             InvalidFunctionAdress,
             RemoteParameterAllocationFault,
             WriteProcessMemoryFault,
-            CreateRemoteThreadFault
+            CreateRemoteThreadFault,
+            LoadLibraryModuleNotFound
         }
 
         public Reasons Reason { get; }
 
-        public string ProcessName { get; }
+        public IntPtr ProcessHandle { get; }
 
         public string ModuleName { get; }
 
         public string ProcName { get; }
 
-        public ProcessException(Reasons reason, Process process, string moduleName, string procName) : base($"{reason.ToString()} process: {process.ProcessName} module: {moduleName}, proc: {procName}")
+        public ProcessException(Reasons reason, IntPtr hProcess, string moduleName, string procName) : base($"{reason.ToString()}\nprocess handle: 0x{hProcess.ToString("x8")}\nmodule: {moduleName}\nproc: {procName}")
         {
             Reason = reason;
-            ProcessName = process.ProcessName;
+            ProcessHandle = hProcess;
             ModuleName = moduleName;
             ProcName = procName;
         }
