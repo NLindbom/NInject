@@ -30,7 +30,7 @@ namespace NInspect
         {
             InitializeComponent();
 
-            MouseHookManager.IgnoreHandle(this.Handle);
+            MouseHookManager.IgnoreInsideWindowHandle(this.Handle);
 
             try
             {
@@ -72,6 +72,11 @@ namespace NInspect
         {
             MouseHookManager.MouseDown -= MouseHookManager_MouseDown;
             MouseHookManager.MouseUp -= MouseHookManager_MouseUp;
+        }
+
+        private void propertyGrid_PropertyValueChanged(object s, PropertyValueChangedEventArgs e)
+        {
+            var item = e.ChangedItem;
         }
     }
 }

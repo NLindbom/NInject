@@ -14,8 +14,13 @@ namespace NInject
 {
     public partial class MainForm : Form
     {
+        private static readonly object lockObject = new object();
+        private Dictionary<Guid, TabPage> tabPages;
+
         public MainForm()
         {
+            tabPages = new Dictionary<Guid, TabPage>();
+
             InitializeComponent();
         }
 
@@ -38,12 +43,25 @@ namespace NInject
 
             tabControl.TabPages.Add(tabPage);
 
-            var processInfo = ProcessManager.Inject(process, Program.DllPath, "Run");             
+            var processInfo = ProcessManager.Inject(process, Program.DllPath, "Run");
+
+            lock (lockObject)
+            {
+                tabPages.Add(processInfo.Id, tabPage);
+            }
+
+            Task.Run(() => ProcessManager.GetExitCodeThread(processInfo.ThreadHandle))
+                .ContinueWith((x) => this.Invoke(new Action(() => CloseTab(processInfo.Id))));
         }
 
-        private void Close(Guid processInfoId)
+        private void CloseTab(Guid processInfoId)
         {
+            lock (lockObject)
+            {
+                tabControl.TabPages.Remove(tabPages[processInfoId]);
 
+                // Todo free dll
+            }
         }
 
         private void CloseAll()
