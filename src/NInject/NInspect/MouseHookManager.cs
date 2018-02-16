@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -17,19 +18,14 @@ namespace NInspect
         // references: https://msdn.microsoft.com/en-us/library/windows/desktop/ms644986(v=vs.85).aspx
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct Point
-        {
-            public int X;
-            public int Y;
-        }
 
-        [StructLayout(LayoutKind.Sequential)]
-        private struct MouseHookStruct
+        private struct MouseLowLevelHookStruct
         {
             public Point Point;
-            public IntPtr WindowHandle;
-            public uint HitTestCode;
-            public UIntPtr ExtraInfo;
+            public uint MouseData;
+            public uint Flags;
+            public uint Time;
+            public IntPtr ExtraInfo;
         }
 
         private const int WH_MOUSE_LL = 0xE;
@@ -52,7 +48,7 @@ namespace NInspect
 
         private static List<IntPtr> ignoreHandles = new List<IntPtr>();
 
-        public static void IgnoreHandle(IntPtr hWnd)
+        public static void IgnoreInsideWindowHandle(IntPtr hWnd)
         {
             if (hWnd == IntPtr.Zero)
                 throw new ArgumentException();
@@ -96,7 +92,7 @@ namespace NInspect
         {
             if (nCode >= 0)
             {
-                var mouseInfo = (MouseHookStruct)Marshal.PtrToStructure(lParam, typeof(MouseHookStruct));
+                var mouseInfo = (MouseLowLevelHookStruct)Marshal.PtrToStructure(lParam, typeof(MouseLowLevelHookStruct));
 
                 OnMouseDown((MouseMessages)wParam, mouseInfo);
             }
@@ -106,9 +102,9 @@ namespace NInspect
             return User32.CallNextHookEx(hHook, nCode, wParam, lParam);
         }
 
-        private static void OnMouseDown(MouseMessages message, MouseHookStruct info)
+        private static void OnMouseDown(MouseMessages message, MouseLowLevelHookStruct mouseInfo)
         {
-            IntPtr hWnd = info.WindowHandle;
+            var hWnd = User32.WindowFromPoint(mouseInfo.Point);
 
             var control = Control.FromHandle(hWnd);
 
@@ -143,8 +139,8 @@ namespace NInspect
             var mouseEventArgs = new MouseEventArgs(
                 button: button,
                 clicks: 1,
-                x: info.Point.X,
-                y: info.Point.Y,
+                x: mouseInfo.Point.X,
+                y: mouseInfo.Point.Y,
                 delta: 0);
 
             if (message == MouseMessages.WM_LBUTTONDOWN ||
