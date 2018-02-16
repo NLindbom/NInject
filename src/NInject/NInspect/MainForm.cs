@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -12,13 +13,12 @@ namespace NInspect
 {
     public partial class MainForm : Form
     {
+        private Process process;
+
         private Control selectedControl = null;
         private Control SelectedControl
         {
-            get
-            {
-                return selectedControl;
-            }
+            get { return selectedControl; }
             set
             {
                 selectedControl = value;
@@ -26,12 +26,19 @@ namespace NInspect
             }
         }
 
-        public MainForm()
+        public MainForm(Process injectedProcess)
         {
+            this.process = injectedProcess;
+
             InitializeComponent();
 
-            MouseHookManager.IgnoreInsideWindowHandle(this.Handle);
+            SetMouseHook();
 
+            windowHandleBrowser1.SetMainWindowHandle(injectedProcess.MainWindowHandle);
+        }
+
+        private void SetMouseHook()
+        {
             try
             {
                 MouseHookManager.SetHook();
@@ -41,10 +48,24 @@ namespace NInspect
                 // Already hooked
             }
 
+            MouseHookManager.IgnoreInsideWindowHandle(this.Handle);
+
             MouseHookManager.MouseDown += MouseHookManager_MouseDown;
             MouseHookManager.MouseUp += MouseHookManager_MouseUp;
 
-            this.Disposed += MainForm_Disposed;
+            this.Disposed += (s, e) =>
+            {
+                MouseHookManager.MouseDown -= MouseHookManager_MouseDown;
+                MouseHookManager.MouseUp -= MouseHookManager_MouseUp;
+            };
+        }
+
+        private void PopulateListView()
+        {
+            using (var process = Process.GetCurrentProcess())
+            {
+                IntPtr hWnd = process.MainWindowHandle;
+            }
         }
 
         private void MouseHookManager_MouseUp(object sender, MouseEventArgs e)
@@ -54,6 +75,8 @@ namespace NInspect
             if (hWnd == IntPtr.Zero)
             {
                 SelectedControl = null;
+
+                label1.Text = "-";
             }
             else
             {
@@ -66,12 +89,6 @@ namespace NInspect
         private void MouseHookManager_MouseDown(object sender, MouseEventArgs e)
         {
 
-        }
-
-        private void MainForm_Disposed(object sender, EventArgs e)
-        {
-            MouseHookManager.MouseDown -= MouseHookManager_MouseDown;
-            MouseHookManager.MouseUp -= MouseHookManager_MouseUp;
         }
 
         private void propertyGrid_PropertyValueChanged(object s, PropertyValueChangedEventArgs e)

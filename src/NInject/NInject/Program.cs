@@ -27,14 +27,13 @@ namespace NInject
             string directory = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
 
             string dllPath;
-            /*
+
             if (IntPtr.Size == 8)
                 dllPath = System.IO.Path.Combine(directory, x64DllName);
             else
                 dllPath = System.IO.Path.Combine(directory, x86DllName);
-            */
 
-            dllPath = System.IO.Path.Combine(directory, x64DllName);
+            // dllPath = System.IO.Path.Combine(directory, x64DllName);
             // dllPath = System.IO.Path.Combine(directory, x86DllName);
 
             if (!System.IO.File.Exists(dllPath))

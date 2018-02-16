@@ -18,7 +18,6 @@ namespace NInspect
         // references: https://msdn.microsoft.com/en-us/library/windows/desktop/ms644986(v=vs.85).aspx
 
         [StructLayout(LayoutKind.Sequential)]
-
         private struct MouseLowLevelHookStruct
         {
             public Point Point;

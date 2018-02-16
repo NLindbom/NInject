@@ -39,6 +39,8 @@ namespace NInject
 
         private void OpenProcess(Process process)
         {
+            // TODO: check if remote process is x86/x64
+            // see answer from user626528: https://stackoverflow.com/questions/1953377/how-to-determine-programmatically-whether-a-particular-process-is-32-bit-or-64-b
             var tabPage = new TabPage(process.ProcessName);
 
             tabControl.TabPages.Add(tabPage);

@@ -18,7 +18,8 @@ namespace NInspect
         [DllExport(nameof(Run), System.Runtime.InteropServices.CallingConvention.StdCall)]
         public static void Run()
         {
-            using (var form = new MainForm())
+            using (var process = Process.GetCurrentProcess())
+            using (var form = new MainForm(process))
             {
                 Client = form;
 
