@@ -13,12 +13,18 @@ namespace NInspect
 {
     public static class Remote
     {
-        [DllExport("Run", System.Runtime.InteropServices.CallingConvention.StdCall)]
-        public static void Start()
+        public static MainForm Client { get; private set; }
+
+        [DllExport(nameof(Run), System.Runtime.InteropServices.CallingConvention.StdCall)]
+        public static void Run()
         {
             using (var form = new MainForm())
             {
+                Client = form;
+
                 form.ShowDialog();
+
+                Client = null;
             }
         }
     }

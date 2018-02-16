@@ -33,10 +33,11 @@
             // 
             // propertyGrid
             // 
-            this.propertyGrid.Location = new System.Drawing.Point(10, 68);
+            this.propertyGrid.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.propertyGrid.Location = new System.Drawing.Point(0, 0);
             this.propertyGrid.Name = "propertyGrid";
             this.propertyGrid.PropertySort = System.Windows.Forms.PropertySort.Categorized;
-            this.propertyGrid.Size = new System.Drawing.Size(262, 126);
+            this.propertyGrid.Size = new System.Drawing.Size(284, 261);
             this.propertyGrid.TabIndex = 0;
             // 
             // MainForm

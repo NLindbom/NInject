@@ -60,7 +60,7 @@
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="MouseHook.cs" />
+    <Compile Include="MouseHookManager.cs" />
     <Compile Include="Remote.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="User32.cs" />

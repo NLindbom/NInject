@@ -100,5 +100,12 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NInspect\NInspect.csproj">
+      <Project>{b3d32afa-c72f-466e-9550-2e52f09301d3}</Project>
+      <Name>NInspect</Name>
+      <Private>False</Private>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
